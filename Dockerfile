@@ -1,21 +1,22 @@
-# Use a base image with Windows Server Core
-FROM mcr.microsoft.com/windows/servercore:ltsc2022
+# Use Ubuntu as the base image
+FROM ubuntu:20.04
 
-# Set the working directory
-WORKDIR /app
+# Install necessary packages
+RUN apt-get update && apt-get install -y \
+    xrdp \
+    xfce4 \
+    xfce4-terminal \
+    dbus-x11 \
+    x11-xserver-utils \
+    && apt-get clean
 
-# Enable Remote Desktop
-RUN powershell -Command \
-    Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0; \
-    Enable-NetFirewallRule -DisplayGroup "Remote Desktop"; \
-    Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
+# Set up XRDP
+RUN sed -i 's/3389/3389/g' /etc/xrdp/xrdp.ini && \
+    echo "xfce4-session" >~/.xsession && \
+    service xrdp start
 
-# Set the password for the local user (runneradmin)
-RUN powershell -Command \
-    Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
-
-# Expose the RDP port (3389)
+# Expose the RDP port
 EXPOSE 3389
 
-# Start the container with PowerShell
-CMD ["powershell"]
+# Start XRDP
+CMD ["/usr/sbin/xrdp", "--nodaemon"]
