@@ -1,29 +1,19 @@
-# Use Ubuntu as the base image
-FROM ubuntu:20.04
+# استخدام صورة Windows Server Core
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
 
-# Set environment variables to configure timezone and make installation non-interactive
-ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ=Asia/Riyadh
+# تثبيت Remote Desktop
+RUN powershell -Command \
+    Install-WindowsFeature -Name Remote-Desktop-Services && \
+    Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 && \
+    Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
 
-# Install necessary packages
-RUN apt-get update && apt-get install -y \
-    tzdata \
-    xrdp \
-    xfce4 \
-    xfce4-terminal \
-    dbus-x11 \
-    x11-xserver-utils \
-    && apt-get clean
+# تعيين كلمة مرور للمستخدم Administrator
+RUN powershell -Command \
+    net user Administrator "P@ssw0rd!" /add && \
+    net user Administrator /active:yes
 
-# Set default root password
-RUN echo "root:P@ssw0rd!" | chpasswd
-
-# Configure XRDP
-RUN echo "xfce4-session" >~/.xsession && \
-    service xrdp start
-
-# Expose the RDP port
+# فتح منفذ RDP
 EXPOSE 3389
 
-# Start XRDP service
-CMD ["/usr/sbin/xrdp", "--nodaemon"]
+# تشغيل الخدمة
+CMD ["cmd.exe"]
